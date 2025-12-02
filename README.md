@@ -11,24 +11,37 @@ This repository contains the code and benchmark suite for **RTSpMSpM**, a novel 
 - **Containers**: Docker 27.3.1 with NVIDIA support
 - **Datasets**: SuiteSparse Matrix Collection
 
+## Documentation for Code Review
+
+For developers new to this codebase, we provide comprehensive documentation:
+
+| Document | Description |
+|----------|-------------|
+| [Code Review Guide](docs/CODE_REVIEW_GUIDE.md) | Complete guide for code review with file links, data flow, and checklists |
+| [Architecture Deep Dive](docs/ARCHITECTURE.md) | Detailed architecture explanation with diagrams |
+| [Quick Reference](docs/QUICK_REFERENCE.md) | Quick lookup for key functions, structures, and commands |
+
 ## Project Structure
 
 ```
 RTSpMSpM/
+├── docs/                    # Documentation for code review
+│   ├── CODE_REVIEW_GUIDE.md # Comprehensive review guide
+│   ├── ARCHITECTURE.md      # Architecture deep dive
+│   └── QUICK_REFERENCE.md   # Quick reference card
 ├── cuSparse/                # GPU baseline using cuSPARSE
 ├── Dockerfile/              # Docker build scripts
 ├── optixSpMSpM/             # OptiX SDK and build system
 │   ├── build/               # Compiled binaries and CMake output
-│   └── src/            
+│   └── src/
 │       ├── data/            # Input Datasets
 │       ├── support/
-│       ├── sutil/     
+│       ├── sutil/
 │       └── optixSpMSpM/     # Core ray tracing-based SpMSpM logic
-└── Tool/
-    └── Script/
-        ├── AE_test.py               # Main script to launch experiments and benchmark
-        ├── install.sh               # Compile program
-        └── download_dataset.sh      # Benchmark automation script
+└── scripts/
+    ├── AE_test.py           # Main script to launch experiments and benchmark
+    ├── install.sh           # Compile program
+    └── download_dataset.sh  # Benchmark automation script
 ```
 
 
