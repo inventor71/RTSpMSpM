@@ -42,7 +42,7 @@ RUN apt-get update && \
     apt-get install -y x11-apps
 # Install cuSparse
 RUN apt-get update && \
-    apt-get install --only-upgrade libstdc++6
+    apt-get install -y --only-upgrade libstdc++6
 
 # # For intelMKL
 # RUN apt-get install gpg-agent && \
@@ -74,4 +74,4 @@ ENV NVIDIA_DRIVER_CAPABILITIES all
 WORKDIR /home
 
 # Define entry point
-# CMD ["bash"]
+CMD ["bash"]

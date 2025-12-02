@@ -20,7 +20,7 @@ docker run -d \
     --privileged \
     --ulimit core=-1 \
     --name ${CONTAINER_NAME} \
-    -u $(id -u $USER):$(id -g $USER) \
     --mount type=bind,source=${SRC_DIR},target=${SRC_TARGET_DIR} \
     ${IMAGE_NAME} 
+    # -u $(id -u $USER):$(id -g $USER) \
     # --mount type=bind,source=/trace,target=/home/trace \

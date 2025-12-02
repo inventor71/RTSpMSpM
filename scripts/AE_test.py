@@ -23,23 +23,24 @@ TEMP_LOG = "/home/RTSpMSpM/scripts/temp.txt"
 MATRIX_SAMPLING_SCRIPT = "/home/RTSpMSpM/scripts/matrixSampling.py"
 # Dataset dict, names as keys and whether they are squared mat as values
 dataset = {
-    "p2p-Gnutella31"   : True, #o
-    "roadNet-CA"       : True, 
-    "webbase-1M"       : True, 
-    "mario002"         : True,    
-    "web-Google"       : True,  
-    "scircuit"         : True, #o
-    "amazon0312"       : True, 
-    "ca-CondMat"       : True, #o
-    "email-Enron"      : True, #o
     "wiki-Vote"        : True,
-    "cage12"           : True,    
-    "2cubes_sphere"    : True,    
-    "offshore"         : True,    
-    "cop20k_A"         : True,    
-    "filter3D"         : True,    
-    "poisson3Da"       : True  
 }
+    # "p2p-Gnutella31"   : True, #o
+    # "roadNet-CA"       : True, 
+    # "webbase-1M"       : True, 
+    # "mario002"         : True,    
+    # "web-Google"       : True,  
+    # "scircuit"         : True, #o
+    # "amazon0312"       : True, 
+    # "ca-CondMat"       : True, #o
+    # "email-Enron"      : True, #o
+    # "wiki-Vote"        : True,
+    # "cage12"           : True,    
+    # "2cubes_sphere"    : True,    
+    # "offshore"         : True,    
+    # "cop20k_A"         : True,    
+    # "filter3D"         : True,    
+    # "poisson3Da"       : True  
 for root, _, files in os.walk(DATA_DIR):
     for file in files:
         if file.endswith(".mtx"):
@@ -54,7 +55,7 @@ program_list = {
     "cuSparse"        : "/home/RTSpMSpM/cuSparse/src/cuSparse",
     "optixSpMSpM"     : "/home/RTSpMSpM/optixSpMSpM/build/bin/optixSpMSpM"
 }
-num_run = 20
+num_run = 1
 
 def average_runtime_to_csv(filepath, outpath):
     # Read CSV file
@@ -170,7 +171,7 @@ def main():
                 sys.exit(f"Error: data file not found {transpose_file_path}")
         
         # Create directory 
-        prof_path = os.path.join(PROF_DIR, f"/{data_file}/")
+        prof_path = os.path.join(PROF_DIR, f"{data_file}/")
         result_path = os.path.join(prof_path, "result/")
         os.makedirs(result_path, exist_ok=True)
 
@@ -220,7 +221,7 @@ def main():
                             out_buff += content + "\n"
                         program_success_flags[program_name] = True
                     except subprocess.CalledProcessError as e:
-                        # print(f"Error running {program_name} with {data_file_path} : {e}\n")
+                        print(f"Error running {program_name} with {data_file_path} : {e}\n")
                         # If optix failed, reduce size
                         # If optix have not failed but others did, then record
                         if "optix" not in program_name:
