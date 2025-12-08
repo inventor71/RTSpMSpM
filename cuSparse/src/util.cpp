@@ -1,13 +1,15 @@
 #include <vector>
+#include <algorithm>
+#include <tuple>
 
 // ============================================================================
 // Helper Functions
 
 /**
- * Load in coo from data file
+ * Load in coo from data file and convert to 0-based indexing with sorting
  */
-void cooFromFile( const std::string& filePath, int** rowArr, int** colArr, 
-                  float** valArr, int* rowSize, int* colSize, 
+void cooFromFile( const std::string& filePath, int** rowArr, int** colArr,
+                  float** valArr, int* rowSize, int* colSize,
                   uint64_t* arrSize)
 {
     std::ifstream file(filePath);
@@ -26,27 +28,44 @@ void cooFromFile( const std::string& filePath, int** rowArr, int** colArr,
     uint64_t nnz;
     std::istringstream iss(line);
     iss >> rows >> cols >> nnz;
-    
+
     *rowSize = rows;
     *colSize = cols;
     *arrSize = nnz;
 
-    // Allocate memory for COO arrays based on arrSize (number of non-zero elements)
+    // Read COO data (1-based in file) into vector for sorting
+    std::vector<std::tuple<int, int, float>> entries;
+    entries.reserve(nnz);
+
+    for (uint64_t i = 0; i < nnz; ++i) {
+        int row, col;
+        float val;
+        file >> row >> col >> val;
+        // Convert to 0-based indexing
+        entries.push_back(std::make_tuple(row - 1, col - 1, val));
+    }
+    file.close();
+
+    // Sort by row (primary) then column (secondary)
+    std::sort(entries.begin(), entries.end());
+
+    // Allocate memory for COO arrays
     *rowArr = new int[*arrSize];
     *colArr = new int[*arrSize];
     *valArr = new float[*arrSize];
 
-    // Read COO data (rows, columns, values)
-    for (uint64_t i = 0; i < *arrSize; ++i) {
-        file >> (*rowArr)[i] >> (*colArr)[i] >> (*valArr)[i];
+    // Fill arrays with sorted, 0-based data
+    for (uint64_t i = 0; i < nnz; ++i) {
+        (*rowArr)[i] = std::get<0>(entries[i]);
+        (*colArr)[i] = std::get<1>(entries[i]);
+        (*valArr)[i] = std::get<2>(entries[i]);
     }
-    file.close();
 }
 
 /**
- * Print coo to output file
+ * Print coo to output file (convert back to 1-based indexing for MTX format)
  */
-void printCooToFile( const std::string& filePath, const int* rowArr, 
+void printCooToFile( const std::string& filePath, const int* rowArr,
                      const int* colArr, const float* valArr, const int rowSize,
                      const int colSize, uint64_t arrSize)
 {
@@ -63,24 +82,26 @@ void printCooToFile( const std::string& filePath, const int* rowArr,
     outFile << rowSize << " " << colSize << " " << arrSize << "\n";
 
     for (uint64_t i = 0; i < arrSize; ++i){
-        outFile << rowArr[i] << " " << colArr[i] << " " << valArr[i] << "\n";
+        // Convert back to 1-based indexing for output
+        outFile << (rowArr[i] + 1) << " " << (colArr[i] + 1) << " " << valArr[i] << "\n";
     }
     outFile.close();
 }
 
-void coo_to_csr(const int* cooRow, uint64_t nnz, int num_rows, int* csrRowPtr) 
+void coo_to_csr(const int* cooRow, uint64_t nnz, int num_rows, int* csrRowPtr)
 {
-    // Initialize csrRowPtr array with ones for 1-based indexing
-    std::fill(csrRowPtr, csrRowPtr + num_rows + 1, 1);
+    // Note: Input is already 0-based and sorted from cooFromFile
+    // Build CSR format with 0-based indexing
+    std::fill(csrRowPtr, csrRowPtr + num_rows + 1, 0);
 
-    // Step 1: Count occurrences of each row index in cooRow
+    // Count occurrences of each row index
     for (uint64_t i = 0; i < nnz; ++i) {
         csrRowPtr[cooRow[i] + 1]++;
     }
 
-    // Step 2: Accumulate the counts to get the row pointers, starting from index 1
-    for (uint64_t i = 1; i <= num_rows; ++i) {
-        csrRowPtr[i] += csrRowPtr[i - 1];
+    // Cumulative sum to get row pointers (0-based)
+    for (int i = 0; i < num_rows; ++i) {
+        csrRowPtr[i + 1] += csrRowPtr[i];
     }
 }
 

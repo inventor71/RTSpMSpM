@@ -185,22 +185,22 @@ int reuseCompute( std::string matrix1File, std::string matrix2File, std:: string
 
     // Comment out if >64
     cusparseXcoo2csr(handle, dA_rows, hA_mat_nnz, hA_mat_num_rows, dA_csrPtr,
-                    CUSPARSE_INDEX_BASE_ONE );
+                    CUSPARSE_INDEX_BASE_ZERO );
     cusparseXcoo2csr(handle, dB_rows, hB_mat_nnz, hB_mat_num_rows, dB_csrPtr,
-                    CUSPARSE_INDEX_BASE_ONE );
+                    CUSPARSE_INDEX_BASE_ZERO );
 
-    // Create sparse matrix in CSR format
+    // Create sparse matrix in CSR format with 0-based indexing
     CHECK_CUSPARSE( cusparseCreateCsr(&matA, hA_mat_num_rows, hA_mat_num_cols, hA_mat_nnz,
                                     dA_csrPtr, dA_cols, dA_values,
-                                    CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ONE, 
+                                    CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO,
                                     CUDA_R_32F) );
     CHECK_CUSPARSE( cusparseCreateCsr(&matB, hB_mat_num_rows, hB_mat_num_cols, hB_mat_nnz,
                                     dB_csrPtr, dB_cols, dB_values,
-                                    CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ONE, 
+                                    CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO,
                                     CUDA_R_32F) );
     CHECK_CUSPARSE( cusparseCreateCsr(&matC, hA_mat_num_rows, hB_mat_num_cols, 0,
                                     NULL, NULL, NULL,
-                                    CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ONE,
+                                    CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO,
                                     CUDA_R_32F) );
 
     //==========================================================================
@@ -295,10 +295,10 @@ int reuseCompute( std::string matrix1File, std::string matrix2File, std:: string
                                     spgemmDesc)
     )
     
-    // Change csr to coo
+    // Change csr to coo (0-based)
     CHECK_CUSPARSE(
         cusparseXcsr2coo(handle, dC_csrPtr, hC_mat_nnz, hC_mat_num_rows, dC_rows,
-                    CUSPARSE_INDEX_BASE_ONE)  )
+                    CUSPARSE_INDEX_BASE_ZERO)  )
     
     // destroy matrix/vector descriptors
     CHECK_CUSPARSE( cusparseSpGEMM_destroyDescr(spgemmDesc) )
@@ -436,23 +436,27 @@ int compute ( std::string matrix1File, std::string matrix2File, std:: string out
     size_t bufferSize1 = 0,    bufferSize2 = 0,    bufferSize3 = 0;
     CHECK_CUSPARSE( cusparseCreate(&handle) );
 
+    // COO to CSR conversion timing
+    Timing::startTiming("coo2csr");
     cusparseXcoo2csr(handle, dA_rows, hA_mat_nnz, hA_mat_num_rows, dA_csrPtr,
-                    CUSPARSE_INDEX_BASE_ONE );
+                    CUSPARSE_INDEX_BASE_ZERO );
     cusparseXcoo2csr(handle, dB_rows, hB_mat_nnz, hB_mat_num_rows, dB_csrPtr,
-                    CUSPARSE_INDEX_BASE_ONE );
+                    CUSPARSE_INDEX_BASE_ZERO );
+    cudaDeviceSynchronize();
+    Timing::stopTiming(false);
 
-    // Create sparse matrix in CSR format
+    // Create sparse matrix in CSR format with 0-based indexing
     CHECK_CUSPARSE( cusparseCreateCsr(&matA, hA_mat_num_rows, hA_mat_num_cols, hA_mat_nnz,
                                     dA_csrPtr, dA_cols, dA_values,
-                                    CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ONE, 
+                                    CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO,
                                     CUDA_R_32F) );
     CHECK_CUSPARSE( cusparseCreateCsr(&matB, hB_mat_num_rows, hB_mat_num_cols, hB_mat_nnz,
                                     dB_csrPtr, dB_cols, dB_values,
-                                    CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ONE, 
+                                    CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO,
                                     CUDA_R_32F) );
     CHECK_CUSPARSE( cusparseCreateCsr(&matC, hA_mat_num_rows, hB_mat_num_cols, 0,
                                     NULL, NULL, NULL,
-                                    CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ONE,
+                                    CUSPARSE_INDEX_32I, CUSPARSE_INDEX_32I, CUSPARSE_INDEX_BASE_ZERO,
                                     CUDA_R_32F) );
     //--------------------------------------------------------------------------
     //--------------------------------------------------------------------------
@@ -538,26 +542,27 @@ int compute ( std::string matrix1File, std::string matrix2File, std:: string out
                             &alpha, matA, matB, &beta, matC,
                             computeType, alg, spgemmDesc) )
 
+    //--------------------------------------------------------------------------
+    // Convert CSR to COO for output (0-based)
+    CHECK_CUSPARSE(
+        cusparseXcsr2coo(handle, dC_csrPtr, hC_mat_nnz, hC_mat_num_rows, dC_rows,
+                    CUSPARSE_INDEX_BASE_ZERO)  )
+
     // destroy matrix/vector descriptors
     CHECK_CUSPARSE( cusparseSpGEMM_destroyDescr(spgemmDesc) )
     CHECK_CUSPARSE( cusparseDestroySpMat(matA) )
     CHECK_CUSPARSE( cusparseDestroySpMat(matB) )
     CHECK_CUSPARSE( cusparseDestroySpMat(matC) )
+    cudaDeviceSynchronize();  // Wait for all GPU operations to complete
     CHECK_CUSPARSE( cusparseDestroy(handle) )
     Timing::stopTiming(true);
-    //--------------------------------------------------------------------------
-    // TODO: Change csr to coo
-    // CHECK_CUSPARSE(
-    //     cusparseXcsr2coo(handle, dC_csrPtr, hC_mat_nnz, hC_mat_num_rows, dC_rows,
-    //                 CUSPARSE_INDEX_BASE_ONE)  )
     //--------------------------------------------------------------------------
     // device result load
     int* hC_rows_tmp = (int*)malloc(hC_mat_nnz * sizeof(int));
     int* hC_columns_tmp = (int*)malloc(hC_mat_nnz * sizeof(int));
     float* hC_values_tmp = new float[hC_mat_nnz];
-    //TODO: change to coo
-    // CHECK_CUDA( cudaMemcpy(hC_rows_tmp, dC_rows, hC_mat_nnz * sizeof(int),
-    //                     cudaMemcpyDeviceToHost) )
+    CHECK_CUDA( cudaMemcpy(hC_rows_tmp, dC_rows, hC_mat_nnz * sizeof(int),
+                        cudaMemcpyDeviceToHost) )
     CHECK_CUDA( cudaMemcpy(hC_columns_tmp, dC_cols, hC_mat_nnz * sizeof(int),
                         cudaMemcpyDeviceToHost) )
     CHECK_CUDA( cudaMemcpy(hC_values_tmp, dC_values, hC_mat_nnz * sizeof(float),
