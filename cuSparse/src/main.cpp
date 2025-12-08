@@ -443,7 +443,7 @@ int compute ( std::string matrix1File, std::string matrix2File, std:: string out
     cusparseXcoo2csr(handle, dB_rows, hB_mat_nnz, hB_mat_num_rows, dB_csrPtr,
                     CUSPARSE_INDEX_BASE_ZERO );
     cudaDeviceSynchronize();
-    Timing::stopTiming(false);
+    double coo2csr_time = Timing::stopTiming(false);
 
     // Create sparse matrix in CSR format with 0-based indexing
     CHECK_CUSPARSE( cusparseCreateCsr(&matA, hA_mat_num_rows, hA_mat_num_cols, hA_mat_nnz,
@@ -461,6 +461,7 @@ int compute ( std::string matrix1File, std::string matrix2File, std:: string out
     //--------------------------------------------------------------------------
     //--------------------------------------------------------------------------
     // SpGEMM Computation
+    Timing::startTiming("spgemm_kernel");
     cusparseSpGEMMDescr_t spgemmDesc;
     CHECK_CUSPARSE( cusparseSpGEMM_createDescr(&spgemmDesc) )
 
@@ -541,12 +542,17 @@ int compute ( std::string matrix1File, std::string matrix2File, std:: string out
         cusparseSpGEMM_copy(handle, opA, opB,
                             &alpha, matA, matB, &beta, matC,
                             computeType, alg, spgemmDesc) )
+    cudaDeviceSynchronize();
+    double spgemm_time = Timing::stopTiming(false);
 
     //--------------------------------------------------------------------------
     // Convert CSR to COO for output (0-based)
+    Timing::startTiming("csr2coo");
     CHECK_CUSPARSE(
         cusparseXcsr2coo(handle, dC_csrPtr, hC_mat_nnz, hC_mat_num_rows, dC_rows,
                     CUSPARSE_INDEX_BASE_ZERO)  )
+    cudaDeviceSynchronize();
+    double csr2coo_time = Timing::stopTiming(false);
 
     // destroy matrix/vector descriptors
     CHECK_CUSPARSE( cusparseSpGEMM_destroyDescr(spgemmDesc) )
@@ -555,7 +561,7 @@ int compute ( std::string matrix1File, std::string matrix2File, std:: string out
     CHECK_CUSPARSE( cusparseDestroySpMat(matC) )
     cudaDeviceSynchronize();  // Wait for all GPU operations to complete
     CHECK_CUSPARSE( cusparseDestroy(handle) )
-    Timing::stopTiming(true);
+    double total_time = Timing::stopTiming(false);
     //--------------------------------------------------------------------------
     // device result load
     int* hC_rows_tmp = (int*)malloc(hC_mat_nnz * sizeof(int));
@@ -586,11 +592,19 @@ int compute ( std::string matrix1File, std::string matrix2File, std:: string out
     free(hC_columns_tmp);
     free(hC_values_tmp);
 
-    // Stop timer
-    Timing::flushTimer(logFile);
-    // auto stop = high_resolution_clock::now();
-    // auto end2end = duration_cast<nanoseconds>(stop - start);
-    // std::cout << "END_TO_END_LATENCY, " << end2end.count() << std::endl;
+    // Stop timer and output detailed breakdown
+    std::ofstream logFileStream(logFile);
+    if (logFileStream.is_open()) {
+        logFileStream << "=== cuSparse Timing Breakdown (ms) ===" << std::endl;
+        logFileStream << "COO→CSR conversion: " << coo2csr_time << std::endl;
+        logFileStream << "SpGEMM kernel:      " << spgemm_time << std::endl;
+        logFileStream << "CSR→COO conversion: " << csr2coo_time << std::endl;
+        logFileStream << "Total:              " << total_time << std::endl;
+        logFileStream << std::endl;
+        logFileStream << "Pure SpGEMM (excluding format conversions): "
+                      << (total_time - coo2csr_time - csr2coo_time) << std::endl;
+        logFileStream.close();
+    }
 
     return EXIT_SUCCESS;
 }
