@@ -380,8 +380,6 @@ int compute ( std::string matrix1File, std::string matrix2File, std:: string out
     cooFromFile(matrix2File, &hB_mat_rows, &hB_mat_cols, &hB_mat_values, &hB_mat_num_rows,
                 &hB_mat_num_cols, &hB_mat_nnz);
 
-    Timing::startTiming("computation time no io");
-
     float               alpha       = 1.0f;
     float               beta        = 0.0f;
     cusparseOperation_t opA         = CUSPARSE_OPERATION_NON_TRANSPOSE;
@@ -426,6 +424,7 @@ int compute ( std::string matrix1File, std::string matrix2File, std:: string out
     CHECK_CUDA( cudaMemcpy(dB_rows, hB_mat_rows, hB_mat_nnz * sizeof(int), 
                         cudaMemcpyHostToDevice));
     //--------------------------------------------------------------------------
+    Timing::startTiming("computation time no io");
     // CUSPARSE APIs
     cusparseSpGEMMAlg_t  alg    = CUSPARSE_SPGEMM_ALG3;
     cusparseHandle_t     handle = NULL;
