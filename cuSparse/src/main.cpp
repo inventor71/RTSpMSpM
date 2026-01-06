@@ -408,8 +408,8 @@ int compute ( std::string matrix1File, std::string matrix2File, std:: string out
     int   *dA_csrPtr, *dB_csrPtr, *dC_csrPtr;
 
     Timing::startTiming("computation time no io");
-    nvtxRangePushA("cusparse-gpu-memcpy");
     
+    nvtxRangePushA("cusparse-gpu-malloc");
     // Allocate device memory for matrix A
     CHECK_CUDA( cudaMalloc((void**)&dA_cols, hA_mat_nnz * sizeof(int)));
     CHECK_CUDA( cudaMalloc((void**)&dA_values, hA_mat_nnz * sizeof(float)));
@@ -425,7 +425,9 @@ int compute ( std::string matrix1File, std::string matrix2File, std:: string out
 
     CHECK_CUDA( cudaMalloc((void**)&dA_rows, hA_mat_nnz * sizeof(int)));
     CHECK_CUDA( cudaMalloc((void**)&dB_rows, hB_mat_nnz * sizeof(int)));
+    nvtxRangePop();
 
+    nvtxRangePushA("cusparse-gpu-memcpy");
     // Copy matrix A data from host to device
     CHECK_CUDA( cudaMemcpy(dA_cols, hA_mat_cols, hA_mat_nnz * sizeof(int),
                         cudaMemcpyHostToDevice));
