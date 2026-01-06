@@ -161,7 +161,7 @@ nsys stats profile_output.nsys-rep
 
 ### Example Output
 
-For wiki-Vote_small.mtx (4148×4148 matrix, 57,920 non-zeros):
+#### RTSpMSpM (OptiX) - wiki-Vote_small.mtx (4148×4148, 57,920 non-zeros):
 
 | Function | Time (ms) | % |
 |----------|-----------|---|
@@ -172,7 +172,33 @@ For wiki-Vote_small.mtx (4148×4148 matrix, 57,920 non-zeros):
 | mat1ToGPU | 26.0 | 2.3% |
 | optixLaunch (GPU kernel) | 1.2 | 0.1% |
 
-For more details, see: `/home/RTSpMSpM/optixSpMSpM/build/NVTX_PROFILING_GUIDE.md`
+#### cuSparse Baseline - wiki-Vote_small.mtx (4148×4148, 57,920 non-zeros):
+
+| Function | Time (ms) | % |
+|----------|-----------|---|
+| computation time no io | 452.2 | 47.6% |
+| printCooToFile | 264.0 | 27.8% |
+| loadMatrices | 180.4 | 19.0% |
+| spgemm_kernel | 47.6 | 5.0% |
+| copyResultsToHost | 4.6 | 0.5% |
+| coo2csr | 0.14 | 0.0% |
+| csr2coo | 0.12 | 0.0% |
+
+### Profiling cuSparse Baseline
+
+The cuSparse baseline also includes NVTX profiling markers:
+
+```bash
+cd /home/RTSpMSpM/cuSparse/src
+
+nsys profile -o cuSparse_profile --stats=true \
+  ./cuSparse \
+  -m1 /home/RTSpMSpM/optixSpMSpM/src/data/wiki-Vote/wiki-Vote_small.mtx \
+  -m2 /home/RTSpMSpM/optixSpMSpM/src/data/wiki-Vote/wiki-Vote_small.mtx \
+  -o result.mtx
+```
+
+**For complete profiling documentation, see:** `/home/RTSpMSpM/NVTX_PROFILING_GUIDE.md`
 
 
 ## 6. Artifact Details
