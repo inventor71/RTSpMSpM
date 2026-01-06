@@ -24,6 +24,21 @@ MATRIX_SAMPLING_SCRIPT = "/home/RTSpMSpM/scripts/matrixSampling.py"
 # Dataset dict, names as keys and whether they are squared mat as values
 dataset = {
     "wiki-Vote"        : True,
+    "ca-CondMat"       : True, #o
+    "email-Enron"      : True, #o
+    "p2p-Gnutella31"   : True, #o 
+    "poisson3Da"       : True,
+    "2cubes_sphere"    : True,
+    "roadNet-CA"       : True, 
+    "webbase-1M"       : True, 
+    "mario002"         : True,    
+    "web-Google"       : True,  
+    "scircuit"         : True, #o
+    "amazon0312"       : True, 
+    "cage12"           : True,    
+    "offshore"         : True,    
+    "cop20k_A"         : True,    
+    "filter3D"         : True,
 }
     # "p2p-Gnutella31"   : True, #o
     # "roadNet-CA"       : True, 
@@ -55,7 +70,7 @@ program_list = {
     "cuSparse"        : "/home/RTSpMSpM/cuSparse/src/cuSparse",
     "optixSpMSpM"     : "/home/RTSpMSpM/optixSpMSpM/build/bin/optixSpMSpM"
 }
-num_run = 1
+num_run = 10
 
 def average_runtime_to_csv(filepath, outpath):
     # Read CSV file
@@ -159,7 +174,7 @@ def main():
 
         # Check if it's a file (and check we need to )
         if not os.path.isfile(data_file_path):
-            data_file_path = os.path.join(DATA_DIR, f"{data_file}.mtx")
+            data_file_path = os.path.join(DATA_DIR, f"{data_file}/{data_file}_small.mtx")
             if not os.path.isfile(data_file_path):
                 sys.exit(f"Error: data file not found {data_file_path}")
 

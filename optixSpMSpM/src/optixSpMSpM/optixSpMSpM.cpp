@@ -578,12 +578,15 @@ int main( int argc, char* argv[] )
         Timing::reset();
         auto start = high_resolution_clock::now();
         
+        nvtxRangePushA("contextSetUp");
+        contextSetUp( state );
+        nvtxRangePop();
+
+        Timing::startTiming("computation time no io");
         // Matrix Load to GPU
         storeSphereData(state, matrix2File);    // Mat2
         mat1ToGPU(matrix1File, state);
 
-        Timing::startTiming("computation time no io");
-        contextSetUp( state );
         buildGAS ( state );
         createModule ( state );
         createProgramGroups ( state );
@@ -608,7 +611,7 @@ int main( int argc, char* argv[] )
         OPTIX_CHECK( optixLaunch( state.pipeline, stream, d_param, sizeof( Params ), &state.sbt, numRayLaunch, /*height=*/1, /*depth=*/1 ) );
         cudaStreamSynchronize(stream);
         
-        Timing::stopTiming(true);
+        double total_time = Timing::stopTiming(true);
 
         CUDA_CHECK( cudaFree( reinterpret_cast<void*>( d_param ) ) );
         //
@@ -622,7 +625,7 @@ int main( int argc, char* argv[] )
         //
         printResult(state, outfile);
 
-        printf("success!");
+        printf("success! total time: %f ms \n", total_time);
         
         //
         // Cleanup

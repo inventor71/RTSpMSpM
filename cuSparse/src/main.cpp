@@ -391,6 +391,8 @@ int compute ( std::string matrix1File, std::string matrix2File, std:: string out
     float *dA_values, *dB_values, *dC_values;
     int   *dA_csrPtr, *dB_csrPtr, *dC_csrPtr;
 
+    Timing::startTiming("computation time no io");
+    
     // Allocate device memory for matrix A
     CHECK_CUDA( cudaMalloc((void**)&dA_cols, hA_mat_nnz * sizeof(int)));
     CHECK_CUDA( cudaMalloc((void**)&dA_values, hA_mat_nnz * sizeof(float)));
@@ -403,6 +405,9 @@ int compute ( std::string matrix1File, std::string matrix2File, std:: string out
 
     CHECK_CUDA( cudaMalloc((void**) &dC_csrPtr,
                         (hA_mat_num_rows + 1) * sizeof(int)) );
+
+    CHECK_CUDA( cudaMalloc((void**)&dA_rows, hA_mat_nnz * sizeof(int)));
+    CHECK_CUDA( cudaMalloc((void**)&dB_rows, hB_mat_nnz * sizeof(int)));
 
     // Copy matrix A data from host to device
     CHECK_CUDA( cudaMemcpy(dA_cols, hA_mat_cols, hA_mat_nnz * sizeof(int),
@@ -417,14 +422,11 @@ int compute ( std::string matrix1File, std::string matrix2File, std:: string out
                         cudaMemcpyHostToDevice));
     
     // Comment out if >64
-    CHECK_CUDA( cudaMalloc((void**)&dA_rows, hA_mat_nnz * sizeof(int)));
-    CHECK_CUDA( cudaMalloc((void**)&dB_rows, hB_mat_nnz * sizeof(int)));
     CHECK_CUDA( cudaMemcpy(dA_rows, hA_mat_rows, hA_mat_nnz * sizeof(int),
                         cudaMemcpyHostToDevice));
     CHECK_CUDA( cudaMemcpy(dB_rows, hB_mat_rows, hB_mat_nnz * sizeof(int), 
                         cudaMemcpyHostToDevice));
     //--------------------------------------------------------------------------
-    Timing::startTiming("computation time no io");
     // CUSPARSE APIs
     cusparseSpGEMMAlg_t  alg    = CUSPARSE_SPGEMM_ALG3;
     cusparseHandle_t     handle = NULL;
@@ -594,14 +596,21 @@ int compute ( std::string matrix1File, std::string matrix2File, std:: string out
     // Stop timer and output detailed breakdown
     std::ofstream logFileStream(logFile);
     if (logFileStream.is_open()) {
+      /*
         logFileStream << "=== cuSparse Timing Breakdown (ms) ===" << std::endl;
         logFileStream << "COO→CSR conversion: " << coo2csr_time << std::endl;
         logFileStream << "SpGEMM kernel:      " << spgemm_time << std::endl;
         logFileStream << "CSR→COO conversion: " << csr2coo_time << std::endl;
         logFileStream << "Total:              " << total_time << std::endl;
         logFileStream << std::endl;
+        */
         logFileStream << "Pure SpGEMM (excluding format conversions): "
                       << (total_time - coo2csr_time - csr2coo_time) << std::endl;
+        logFileStream << "Input matrix density (nnz/total elements): "
+                      << static_cast<double>(hA_mat_nnz) /
+                         (static_cast<double>(hA_mat_num_rows) *
+                          static_cast<double>(hA_mat_num_cols))
+                      << std::endl;
         logFileStream.close();
     }
 
