@@ -121,6 +121,7 @@ void mat1ToGPU( const std::string& filePath, optixState& state )
     // Allocate space for matrix
     output = tempMatrix.data();
     uint64_t cnt = tempMatrix.size();
+    nvtxRangePushA("mat1ToGPU-gpu-memcpy");
     CUDA_CHECK(cudaMalloc(&d_output, cnt*sizeof(float3)));
 
     cudaMemcpy(d_output, output, cnt*sizeof(float3), cudaMemcpyHostToDevice);
@@ -128,6 +129,7 @@ void mat1ToGPU( const std::string& filePath, optixState& state )
     state.d_size = cnt;
     state.matrixFloat = output;
     state.d_matrix = d_output;
+    nvtxRangePop();
 }
 
 /**
@@ -146,6 +148,7 @@ void storeSphereData( optixState& state, std::string matrixFile2 )
     uint64_t cnt = sphere.points().size();
 
     // Allocate space for matrix
+    nvtxRangePushA("storeSphereData-gpu-memcpy");
     output = sphereValues.data();
     CUDA_CHECK(cudaMalloc(&d_output, cnt*sizeof(float)));
     cudaMemcpy(d_output, output, cnt*sizeof(float), cudaMemcpyHostToDevice);
@@ -159,6 +162,7 @@ void storeSphereData( optixState& state, std::string matrixFile2 )
 
     createOnDevice( sphere.points(), &state.devicePoints );
     createOnDevice( sphere.radius(), &state.deviceRadius );
+    nvtxRangePop();
 }
 
 void resultBufferSetup( optixState& state )
@@ -582,7 +586,6 @@ int main( int argc, char* argv[] )
         contextSetUp( state );
         nvtxRangePop();
 
-        nvtxRangePushA("computation time no io");
         Timing::startTiming("computation time no io");
         // Matrix Load to GPU
         nvtxRangePushA("storeSphereData");
@@ -592,6 +595,7 @@ int main( int argc, char* argv[] )
         mat1ToGPU(matrix1File, state);
         nvtxRangePop();
 
+        nvtxRangePushA("computation time no io");
         nvtxRangePushA("buildGAS");
         buildGAS ( state );
         nvtxRangePop();

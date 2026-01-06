@@ -9,6 +9,7 @@ NVIDIA-OptiX-SDK-8.0.0-linux64-x86_64.sh
 **/bin/*
 !/build/.gitkeep
 /build*/*
+__pycache__/
 
 #ignore temp file (but keep the directory)
 **/output/**

@@ -70,7 +70,7 @@ program_list = {
     "cuSparse"        : "/home/RTSpMSpM/cuSparse/src/cuSparse",
     "optixSpMSpM"     : "/home/RTSpMSpM/optixSpMSpM/build/bin/optixSpMSpM"
 }
-num_run = 10
+num_run = 1
 
 def average_runtime_to_csv(filepath, outpath):
     # Read CSV file
@@ -170,11 +170,11 @@ def main():
     # Iterate over each data file in the DATA_DIR
     for data_file in dataset:
         # Construct the full path to the data file
-        data_file_path = os.path.join(DATA_DIR, f"{data_file}/{data_file}.mtx")
+        data_file_path = os.path.join(DATA_DIR, f"{data_file}/{data_file}_small.mtx")
 
         # Check if it's a file (and check we need to )
         if not os.path.isfile(data_file_path):
-            data_file_path = os.path.join(DATA_DIR, f"{data_file}/{data_file}_small.mtx")
+            data_file_path = os.path.join(DATA_DIR, f"{data_file}/{data_file}.mtx")
             if not os.path.isfile(data_file_path):
                 sys.exit(f"Error: data file not found {data_file_path}")
 
@@ -217,16 +217,21 @@ def main():
                         out_matrix_path = os.path.join(result_path, f"{program_name}.mtx")
                         out_buff += program_name + ", " + data_file + ", " + f"run{i}, "
                         if is_squared:
+                            # Profile output path
+                            nsys_profile_path = os.path.join(program_prof_path, f"{data_file}_{program_name}_run{i}_profile")
+
                             # IMPORTANT: optix needs relative path
                             if "optix" in program_name:
                                 rel_data_path = os.path.relpath(data_path, start=os.path.dirname(program_path))
                                 subprocess.run(
-                                    [program_path, "-m1", f"{rel_data_path}", "-m2", f"{rel_data_path}", "-o", out_matrix_path, "-l", TEMP_LOG],
+                                    ["nsys", "profile", "-o", nsys_profile_path, "--stats=true", "--force-overwrite=true",
+                                     program_path, "-m1", f"{rel_data_path}", "-m2", f"{rel_data_path}", "-o", out_matrix_path, "-l", TEMP_LOG],
                                     check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
                                 )
                             else:
                                 subprocess.run(
-                                    [program_path, "-m1", f"{data_path}", "-m2", f"{data_path}", "-o", out_matrix_path, "-l", TEMP_LOG],
+                                    ["nsys", "profile", "-o", nsys_profile_path, "--stats=true", "--force-overwrite=true",
+                                     program_path, "-m1", f"{data_path}", "-m2", f"{data_path}", "-o", out_matrix_path, "-l", TEMP_LOG],
                                      check=True, stderr=subprocess.DEVNULL, stdout=subprocess.DEVNULL
                                 )
                         else:
