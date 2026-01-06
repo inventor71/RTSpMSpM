@@ -87,6 +87,94 @@ python3 /home/RTSpMSpM/scripts/AE_test.py
 ```
 
 
+## Profiling with NVTX and Nsight Systems
+
+The RTSpMSpM code is instrumented with NVIDIA NVTX (Tools Extension) markers for detailed performance profiling.
+
+### Install NVIDIA Nsight Systems
+
+Install nsys for CUDA 12.3 (match your CUDA version):
+
+```bash
+apt-get update
+apt-get install -y cuda-nsight-systems-12-3
+```
+
+Verify installation:
+```bash
+nsys --version
+# Expected output: NVIDIA Nsight Systems version 2023.3.3.42 (or similar)
+```
+
+### NVTX Markers
+
+The following code sections are instrumented with NVTX profiling ranges:
+- `contextSetUp` - OptiX initialization
+- `computation time no io` - Main computation phase
+- `storeSphereData` - Matrix 2 loading
+- `mat1ToGPU` - Matrix 1 loading to GPU
+- `buildGAS` - Geometry Acceleration Structure build
+- `createModule`, `createProgramGroups`, `createPipeline`, `createSbt` - OptiX setup
+- `optixLaunch` - Ray tracing kernel execution
+- `printResult` - Output file writing
+
+### Running Profiling
+
+Set the samples directory environment variable:
+```bash
+export OPTIX_SAMPLES_SDK_DIR=/home/RTSpMSpM/optixSpMSpM/src
+```
+
+Basic profiling command:
+```bash
+cd /home/RTSpMSpM/optixSpMSpM/build
+
+nsys profile -o profile_output --stats=true \
+  ./bin/optixSpMSpM \
+  -m1 wiki-Vote/wiki-Vote_small.mtx \
+  -m2 wiki-Vote/wiki-Vote_small.mtx \
+  -o result.mtx
+```
+
+Profile only computation phase (reduced overhead):
+```bash
+nsys profile -o profile_output \
+  --capture-range=nvtx \
+  --nvtx-capture="computation time no io" \
+  --stats=true \
+  ./bin/optixSpMSpM \
+  -m1 wiki-Vote/wiki-Vote_small.mtx \
+  -m2 wiki-Vote/wiki-Vote_small.mtx
+```
+
+### View Results
+
+Using the GUI (requires X11 forwarding or local install):
+```bash
+nsys-ui profile_output.nsys-rep
+```
+
+Or generate text reports:
+```bash
+nsys stats profile_output.nsys-rep
+```
+
+### Example Output
+
+For wiki-Vote_small.mtx (4148×4148 matrix, 57,920 non-zeros):
+
+| Function | Time (ms) | % |
+|----------|-----------|---|
+| contextSetUp | 670.3 | 59.9% |
+| printResult | 300.9 | 26.9% |
+| computation time no io | 67.8 | 6.1% |
+| storeSphereData | 27.9 | 2.5% |
+| mat1ToGPU | 26.0 | 2.3% |
+| optixLaunch (GPU kernel) | 1.2 | 0.1% |
+
+For more details, see: `/home/RTSpMSpM/optixSpMSpM/build/NVTX_PROFILING_GUIDE.md`
+
+
 ## 6. Artifact Details
 
 - **Artifact Availability**: Public  

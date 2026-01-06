@@ -582,16 +582,31 @@ int main( int argc, char* argv[] )
         contextSetUp( state );
         nvtxRangePop();
 
+        nvtxRangePushA("computation time no io");
         Timing::startTiming("computation time no io");
         // Matrix Load to GPU
+        nvtxRangePushA("storeSphereData");
         storeSphereData(state, matrix2File);    // Mat2
+        nvtxRangePop();
+        nvtxRangePushA("mat1ToGPU");
         mat1ToGPU(matrix1File, state);
+        nvtxRangePop();
 
+        nvtxRangePushA("buildGAS");
         buildGAS ( state );
+        nvtxRangePop();
+        nvtxRangePushA("createModule");
         createModule ( state );
+        nvtxRangePop();
+        nvtxRangePushA("createProgramGroups");
         createProgramGroups ( state );
+        nvtxRangePop();
+        nvtxRangePushA("createPipeline");
         createPipeline ( state );
+        nvtxRangePop();
+        nvtxRangePushA("createSbt");
         createSbt ( state );
+        nvtxRangePop();
         
         //
         // Launch
@@ -608,10 +623,13 @@ int main( int argc, char* argv[] )
                     ) );
 
         uint64_t numRayLaunch = state.d_size;
+        nvtxRangePushA("optixLaunch");
         OPTIX_CHECK( optixLaunch( state.pipeline, stream, d_param, sizeof( Params ), &state.sbt, numRayLaunch, /*height=*/1, /*depth=*/1 ) );
         cudaStreamSynchronize(stream);
-        
+        nvtxRangePop();
+
         double total_time = Timing::stopTiming(true);
+        nvtxRangePop(); // End "computation time no io"
 
         CUDA_CHECK( cudaFree( reinterpret_cast<void*>( d_param ) ) );
         //
@@ -623,7 +641,9 @@ int main( int argc, char* argv[] )
         //
         // Display results
         //
+        nvtxRangePushA("printResult");
         printResult(state, outfile);
+        nvtxRangePop();
 
         printf("success! total time: %f ms \n", total_time);
         

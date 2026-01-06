@@ -27,6 +27,8 @@
 #
 set_source_files_properties(${CMAKE_CURRENT_SOURCE_DIR}/thrust_helper.cu PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ)
 
+link_directories(/usr/local/cuda/targets/x86_64-linux/lib)
+
 OPTIX_add_sample_executable( optixSpMSpM target_name
   optixSpMSpM.cu
   optixSpMSpM.cpp
@@ -52,9 +54,10 @@ OPTIX_add_sample_executable( optixSpMSpM target_name
         # --expt-extended-lambda --expt-relaxed-constexpr -Xcompiler -Wno-subobject-linkage)
 
 # target_compile_options(${target_name} PUBLIC --expt-extended-lambda --expt-relaxed-constexpr)
-target_compile_options(${target_name} PUBLIC -Wno-subobject-linkage) 
-target_link_libraries( ${target_name} 
+target_compile_options(${target_name} PUBLIC -Wno-subobject-linkage)
+target_link_libraries( ${target_name}
     ${CUDA_LIBRARIES}
+    nvToolsExt
     # cuco
     # stdgpu::stdgpu
 )
