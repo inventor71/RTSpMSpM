@@ -200,6 +200,34 @@ nsys profile -o cuSparse_profile --stats=true \
 
 **For complete profiling documentation, see:** `/home/RTSpMSpM/NVTX_PROFILING_GUIDE.md`
 
+### Extracting Profiling Metrics
+
+Use the provided scripts to extract specific metrics from profiling outputs:
+
+```bash
+# Extract metrics from a single profile
+python3 /home/RTSpMSpM/scripts/extract_profile_times.py <profile.sqlite>
+
+# Extract and export to CSV
+python3 /home/RTSpMSpM/scripts/extract_profile_times.py <profile.sqlite> --csv output.csv
+
+# Batch process multiple profiles in a directory
+python3 /home/RTSpMSpM/scripts/batch_extract_profiles.py <directory> [output.csv]
+```
+
+**Example:**
+```bash
+cd /home/RTSpMSpM/optixSpMSpM/build
+python3 /home/RTSpMSpM/scripts/extract_profile_times.py wiki-Vote_profile.sqlite
+```
+
+The scripts extract:
+- `computation time no io` - Core GPU computation time
+- `storeSphereData (GPU memcpy)` - GPU memory transfer during matrix 2 loading
+- `mat1ToGPU (GPU memcpy)` - GPU memory transfer during matrix 1 loading
+
+**Documentation:** See `/home/RTSpMSpM/scripts/PROFILING_SCRIPTS_README.md` for detailed usage
+
 
 ## 6. Artifact Details
 

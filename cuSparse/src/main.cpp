@@ -116,7 +116,6 @@ int reuseCompute( std::string matrix1File, std::string matrix2File, std:: string
                 &hB_mat_num_cols, &hB_mat_nnz);
     nvtxRangePop();
 
-    nvtxRangePushA("computation time no io");
     Timing::startTiming("computation time no io");
 
     float               alpha       = 1.0f;
@@ -408,9 +407,9 @@ int compute ( std::string matrix1File, std::string matrix2File, std:: string out
     float *dA_values, *dB_values, *dC_values;
     int   *dA_csrPtr, *dB_csrPtr, *dC_csrPtr;
 
-    nvtxRangePushA("computation time no io");
     Timing::startTiming("computation time no io");
     
+    nvtxRangePushA("cusparse-gpu-malloc");
     // Allocate device memory for matrix A
     CHECK_CUDA( cudaMalloc((void**)&dA_cols, hA_mat_nnz * sizeof(int)));
     CHECK_CUDA( cudaMalloc((void**)&dA_values, hA_mat_nnz * sizeof(float)));
@@ -426,7 +425,9 @@ int compute ( std::string matrix1File, std::string matrix2File, std:: string out
 
     CHECK_CUDA( cudaMalloc((void**)&dA_rows, hA_mat_nnz * sizeof(int)));
     CHECK_CUDA( cudaMalloc((void**)&dB_rows, hB_mat_nnz * sizeof(int)));
+    nvtxRangePop();
 
+    nvtxRangePushA("cusparse-gpu-memcpy");
     // Copy matrix A data from host to device
     CHECK_CUDA( cudaMemcpy(dA_cols, hA_mat_cols, hA_mat_nnz * sizeof(int),
                         cudaMemcpyHostToDevice));
@@ -444,8 +445,10 @@ int compute ( std::string matrix1File, std::string matrix2File, std:: string out
                         cudaMemcpyHostToDevice));
     CHECK_CUDA( cudaMemcpy(dB_rows, hB_mat_rows, hB_mat_nnz * sizeof(int), 
                         cudaMemcpyHostToDevice));
+    nvtxRangePop();
     //--------------------------------------------------------------------------
     // CUSPARSE APIs
+    nvtxRangePushA("cusparse create handle");
     cusparseSpGEMMAlg_t  alg    = CUSPARSE_SPGEMM_ALG3;
     cusparseHandle_t     handle = NULL;
     cusparseSpMatDescr_t matA, matB, matC;
@@ -454,8 +457,10 @@ int compute ( std::string matrix1File, std::string matrix2File, std:: string out
     void*  dBuffer1    = NULL, *dBuffer2   = NULL, *dBuffer3   = NULL;
     size_t bufferSize1 = 0,    bufferSize2 = 0,    bufferSize3 = 0;
     CHECK_CUSPARSE( cusparseCreate(&handle) );
+    nvtxRangePop();
 
     // COO to CSR conversion timing
+    nvtxRangePushA("computation time no io");
     nvtxRangePushA("coo2csr");
     Timing::startTiming("coo2csr");
     cusparseXcoo2csr(handle, dA_rows, hA_mat_nnz, hA_mat_num_rows, dA_csrPtr,
